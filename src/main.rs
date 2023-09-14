@@ -3,8 +3,11 @@ use std::str::FromStr;
 use anyhow::Result;
 use clap::Parser;
 use console::style;
-use solana_address_lookup_table_program::instruction::{
-    close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
+use solana_address_lookup_table_program::{
+    instruction::{
+        close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
+    },
+    state::LOOKUP_TABLE_META_SIZE,
 };
 use solana_sdk::{pubkey::Pubkey, signer::Signer};
 
@@ -24,6 +27,7 @@ fn main() -> Result<()> {
         args::Commands::Extend { lut, addresses } => extend_lut(lut, addresses)?,
         args::Commands::Close { lut } => close_lut(lut)?,
         args::Commands::Deactivate { lut } => deactivate_lut(lut)?,
+        args::Commands::Decode { lut } => decode_lut(lut)?,
     }
 
     Ok(())
@@ -120,6 +124,29 @@ fn deactivate_lut(lut_address: String) -> Result<()> {
         style(lut_address).bold().green(),
         style(signature).bold().green()
     );
+
+    Ok(())
+}
+
+fn decode_lut(lut_address: String) -> Result<()> {
+    let config = setup::CliConfig::new()?;
+
+    let lut_pubkey = Pubkey::from_str(&lut_address)?;
+
+    let account_data = config.client.get_account_data(&lut_pubkey)?;
+
+    let addresses: Vec<Pubkey> = account_data[LOOKUP_TABLE_META_SIZE..]
+        .chunks(32)
+        .map(|chunk| {
+            let mut array = [0u8; 32];
+            array.copy_from_slice(chunk);
+            Pubkey::new_from_array(array)
+        })
+        .collect();
+
+    for address in addresses {
+        println!("{}", address);
+    }
 
     Ok(())
 }

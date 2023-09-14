@@ -28,4 +28,7 @@ pub enum Commands {
     Deactivate {
         lut: String,
     },
+    Decode {
+        lut: String,
+    },
 }
