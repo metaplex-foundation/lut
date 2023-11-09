@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::{
     clock::Slot,
+    commitment_config::CommitmentConfig,
     hash::Hash,
     signature::{read_keypair_file, Keypair},
 };
@@ -29,7 +30,10 @@ impl CliConfig {
         let keypair = read_keypair_file(&config.keypair_path)
             .map_err(|_| anyhow!("Couldn't read keypair file"))?;
 
-        let client = solana_client::rpc_client::RpcClient::new(config.json_rpc_url);
+        let client = solana_client::rpc_client::RpcClient::new_with_commitment(
+            config.json_rpc_url,
+            CommitmentConfig::confirmed(),
+        );
         let recent_blockhash = client.get_latest_blockhash()?;
         let recent_slot = client.get_slot()?;
 
