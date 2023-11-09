@@ -24,7 +24,11 @@ fn main() -> Result<()> {
 
     match args.command {
         args::Commands::Create => create_lut()?,
-        args::Commands::Extend { lut, addresses } => extend_lut(lut, addresses)?,
+        args::Commands::Extend {
+            lut,
+            addresses,
+            file,
+        } => extend_lut(lut, addresses, file)?,
         args::Commands::Close { lut } => close_lut(lut)?,
         args::Commands::Deactivate { lut } => deactivate_lut(lut)?,
         args::Commands::Decode { lut } => decode_lut(lut)?,
@@ -62,15 +66,40 @@ fn create_lut() -> Result<()> {
     Ok(())
 }
 
-fn extend_lut(lut_address: String, addresses: Vec<String>) -> Result<()> {
+fn extend_lut(
+    lut_address: String,
+    addresses: Option<Vec<String>>,
+    file: Option<String>,
+) -> Result<()> {
     let config = setup::CliConfig::new()?;
     let authority_pubkey = config.keypair.pubkey();
 
     let lut_pubkey = Pubkey::from_str(&lut_address)?;
-    let addresses: Vec<Pubkey> = addresses
-        .iter()
-        .map(|address| Pubkey::from_str(address))
-        .collect::<Result<Vec<Pubkey>, _>>()?;
+
+    if addresses.is_none() && file.is_none() {
+        return Err(anyhow::anyhow!(
+            "No addresses provided. Use --addresses or --file"
+        ));
+    }
+
+    if addresses.is_some() && file.is_some() {
+        return Err(anyhow::anyhow!("Cannot use both --addresses and --file"));
+    }
+
+    let addresses = if let Some(addresses) = addresses {
+        addresses
+            .iter()
+            .map(|address| Pubkey::from_str(address))
+            .collect::<Result<Vec<Pubkey>, _>>()?
+    } else if let Some(file) = file {
+        let file = std::fs::read_to_string(file)?;
+        serde_json::from_str::<Vec<String>>(&file)?
+            .iter()
+            .map(|address| Pubkey::from_str(address))
+            .collect::<Result<Vec<Pubkey>, _>>()?
+    } else {
+        return Err(anyhow::anyhow!("No addresses provided"));
+    };
 
     let ix = extend_lookup_table(
         lut_pubkey,

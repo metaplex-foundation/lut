@@ -19,8 +19,13 @@ pub enum Commands {
     Extend {
         lut: String,
 
+        /// Space separated list of addresses
         #[arg(short, long, action = ArgAction::Append)]
-        addresses: Vec<String>,
+        addresses: Option<Vec<String>>,
+
+        /// JSON file with list of addresses
+        #[arg(short, long)]
+        file: Option<String>,
     },
     Close {
         lut: String,
