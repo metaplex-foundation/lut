@@ -1,9 +1,9 @@
-use std::str::FromStr;
+use std::{fs::File, io::BufReader, str::FromStr};
 
 use anyhow::Result;
 use clap::Parser;
 use console::style;
-use solana_address_lookup_table_program::{
+use solana_sdk::address_lookup_table::{
     instruction::{
         close_lookup_table, create_lookup_table, deactivate_lookup_table, extend_lookup_table,
     },
@@ -24,7 +24,11 @@ fn main() -> Result<()> {
 
     match args.command {
         args::Commands::Create => create_lut()?,
-        args::Commands::Extend { lut, addresses } => extend_lut(lut, addresses)?,
+        args::Commands::Extend {
+            lut,
+            addresses,
+            file,
+        } => extend_lut(lut, addresses, file)?,
         args::Commands::Close { lut } => close_lut(lut)?,
         args::Commands::Deactivate { lut } => deactivate_lut(lut)?,
         args::Commands::Decode { lut } => decode_lut(lut)?,
@@ -62,12 +66,37 @@ fn create_lut() -> Result<()> {
     Ok(())
 }
 
-fn extend_lut(lut_address: String, addresses: Vec<String>) -> Result<()> {
+fn extend_lut(
+    lut_address: String,
+    addresses: Option<Vec<String>>,
+    file: Option<String>,
+) -> Result<()> {
     let config = setup::CliConfig::new()?;
     let authority_pubkey = config.keypair.pubkey();
 
     let lut_pubkey = Pubkey::from_str(&lut_address)?;
-    let addresses: Vec<Pubkey> = addresses
+
+    // If neither option is provided, fail
+    if addresses.is_none() && file.is_none() {
+        return Err(anyhow::anyhow!(
+            "Must provide some addresses to extend with."
+        ));
+    }
+
+    // Combine addresses from file and command line
+    let mut all_addresses = Vec::new();
+
+    if let Some(addresses) = addresses {
+        all_addresses.extend(addresses);
+    }
+    if let Some(file) = file {
+        let file = File::open(file)?;
+        let reader = BufReader::new(file);
+        let addresses: Vec<String> = serde_json::from_reader(reader)?;
+        all_addresses.extend(addresses);
+    }
+
+    let pubkeys = all_addresses
         .iter()
         .map(|address| Pubkey::from_str(address))
         .collect::<Result<Vec<Pubkey>, _>>()?;
@@ -76,7 +105,7 @@ fn extend_lut(lut_address: String, addresses: Vec<String>) -> Result<()> {
         lut_pubkey,
         authority_pubkey,
         Some(authority_pubkey),
-        addresses,
+        pubkeys,
     );
 
     let signature = send_transaction(&config, &[ix])?;

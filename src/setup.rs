@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use dirs::{config_dir, home_dir};
 use serde::{Deserialize, Serialize};
-use solana_client::rpc_client::RpcClient;
+use solana_rpc_client::rpc_client::RpcClient;
 use solana_sdk::{
     clock::Slot,
     hash::Hash,
@@ -29,7 +29,7 @@ impl CliConfig {
         let keypair = read_keypair_file(&config.keypair_path)
             .map_err(|_| anyhow!("Couldn't read keypair file"))?;
 
-        let client = solana_client::rpc_client::RpcClient::new(config.json_rpc_url);
+        let client = RpcClient::new(config.json_rpc_url);
         let recent_blockhash = client.get_latest_blockhash()?;
         let recent_slot = client.get_slot()?;
 

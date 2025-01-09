@@ -20,7 +20,10 @@ pub enum Commands {
         lut: String,
 
         #[arg(short, long, action = ArgAction::Append)]
-        addresses: Vec<String>,
+        addresses: Option<Vec<String>>,
+
+        #[arg(short = 'f', long, action = ArgAction::Append)]
+        file: Option<String>,
     },
     Close {
         lut: String,
