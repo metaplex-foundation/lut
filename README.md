@@ -2,26 +2,34 @@
 
 ## Commands
 
-```bash
-lut create 
-```
+### Create
 
-Creates a new LUT using the default keypair in the Solana config file.
+Creates a new LUT using the default keypair in the Solana config file as the authority.
 
 ```bash
-lut extend <lut_address> -a <address1> -a <address2> -a <address3>
+lut create
 ```
 
-Appends new addresses to the LUT.
+### Extend
+
+Appends new addresses to the LUT from the command line and/or a JSON file.
+
+```bash
+lut extend <lut_address> -a <address1> -a <address2> -a <address3> -f addresses.json
+```
+
+### Deactivate
+
+Deactivates the LUT, starting the cooldown period.
 
 ```bash
 lut deactivate <lut_address>
 ```
 
-Deactivates the LUT, starting the cooldown period.
+### Close
+
+Closes the LUT and returns the rent funds to the owner keypair.
 
 ```bash
 lut close <lut_address>
 ```
-
-Closes the LUT and returns the rent funds to the owner keypair.
